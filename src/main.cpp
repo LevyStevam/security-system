@@ -111,7 +111,7 @@ void handleNewMessages(int numNewMessages) {
     if (text == "/start") {
       String welcome = "Bem-vindo, " + from_name + ".\n";
       welcome += "Comandos disponíveis:\n";
-      welcome += "/pessoas - Capturar imagem da câmera\n";
+      welcome += "/pessoas - Capturar imagem da câmera\n /pet - Verificar presença do pet\n";
       bot.sendMessage(chat_id, welcome, "");
     }
 
@@ -128,8 +128,43 @@ void handleNewMessages(int numNewMessages) {
         bot.sendMessage(chat_id, "❌ Não consegui baixar a imagem.", "");
       }
     }
+
+    if (text == "/pet") {
+      bot.sendMessage(chat_id, "🔍 Verificando presença do pet...", "");
+
+      HTTPClient http;
+      WiFiClient clientHttp;
+      http.begin(clientHttp, "http://172.20.10.8:8000/pet");  // Corrigido
+
+      int httpCode = http.GET();
+
+      if (httpCode == 200) {
+        String payload = http.getString();
+
+        // Parse do JSON
+        DynamicJsonDocument doc(2048); // pode ajustar o tamanho se necessário
+        DeserializationError error = deserializeJson(doc, payload);
+
+        if (error) {
+          bot.sendMessage(chat_id, "❌ Erro ao interpretar a resposta do servidor.", "");
+        } else {
+          JsonArray predictions = doc["predictions"];
+          if (!predictions.isNull() && predictions.size() > 0) {
+            bot.sendMessage(chat_id, "🐾 Seu pet está no alcance da câmera!", "");
+          } else {
+            bot.sendMessage(chat_id, "📷 Seu pet **não** está no alcance da câmera.", "");
+          }
+        }
+      } else {
+        bot.sendMessage(chat_id, "❌ Falha ao acessar o servidor pet.", "");
+        Serial.printf("Erro HTTP GET /pet: %d\n", httpCode);
+      }
+
+      http.end();
+    }
   }
 }
+
 
 // ----- Task de monitoramento -----
 void flameMonitorTask(void *parameter) {

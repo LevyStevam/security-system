@@ -111,7 +111,7 @@ void handleNewMessages(int numNewMessages) {
     if (text == "/start") {
       String welcome = "Bem-vindo, " + from_name + ".\n";
       welcome += "Comandos disponíveis:\n";
-      welcome += "/pessoas - Capturar imagem da câmera\n /pet - Verificar presença do pet\n";
+      welcome += "/pessoas - Capturar imagem da câmera\n /pet - Verificar presença do pet\n /pessoas_qtd - Contar pessoas na imagem\n";
       bot.sendMessage(chat_id, welcome, "");
     }
 
@@ -162,6 +162,35 @@ void handleNewMessages(int numNewMessages) {
 
       http.end();
     }
+    if (text == "/pessoas_qtd") {
+      bot.sendMessage(chat_id, "🔍 Contando humanos na imagem...", "");
+
+      HTTPClient http;
+      WiFiClient clientHttp;
+      http.begin(clientHttp, "http://172.20.10.8:8000/quantity");  // mesma estrutura do /pet
+
+      int httpCode = http.GET();
+
+      if (httpCode == 200) {
+        String qtd = http.getString();
+        qtd.trim(); // remove \n ou espaço
+
+        if (qtd == "0") {
+          bot.sendMessage(chat_id, "🚫 Nenhum humano foi detectado na imagem.", "");
+        } else if (qtd == "1") {
+          bot.sendMessage(chat_id, "🚶‍♂️ Foi detectado 1 humano na imagem.", "");
+        } else {
+          bot.sendMessage(chat_id, "🚶‍♂️ Foram detectados " + qtd + " humanos na imagem.", "");
+        }
+
+      } else {
+        bot.sendMessage(chat_id, "❌ Não consegui obter a quantidade de pessoas.", "");
+        Serial.printf("Erro HTTP GET /quantity: %d\n", httpCode);
+      }
+
+      http.end();
+    }
+
   }
 }
 
